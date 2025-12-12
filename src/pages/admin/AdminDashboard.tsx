@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { database } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
-import { Package, Users, MessageCircle, ShoppingCart, Coins, Settings, Image, Tag, Sparkles, RotateCcw, LogOut, Newspaper, Bell } from 'lucide-react';
+import { Package, Users, MessageCircle, ShoppingCart, Coins, Settings, Image, Tag, Sparkles, RotateCcw, LogOut, Newspaper, Bell, Gift } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -24,6 +24,7 @@ const AdminDashboard: React.FC = () => {
     { icon: Sparkles, label: 'Promoções', path: '/admin/promocoes', color: 'text-yellow-400' },
     { icon: Newspaper, label: 'Novidades', path: '/admin/novidades', color: 'text-teal-400' },
     { icon: RotateCcw, label: 'Roleta', path: '/admin/roleta', color: 'text-purple-400' },
+    { icon: Gift, label: 'Resgates', path: '/admin/resgates', color: 'text-emerald-400' },
     { icon: Users, label: 'Usuários', path: '/admin/usuarios', color: 'text-pink-400' },
     { icon: MessageCircle, label: 'Suporte', path: '/admin/chat', color: 'text-cyan-400' },
     { icon: Bell, label: 'Broadcasts', path: '/admin/broadcasts', color: 'text-red-400' },

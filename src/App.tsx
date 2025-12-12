@@ -35,7 +35,9 @@ import AdminNews from "./pages/admin/AdminNews";
 import AdminBroadcasts from "./pages/admin/AdminBroadcasts";
 import AdminTermsPolicies from "./pages/admin/AdminTermsPolicies";
 import AdminPrizeSearch from "./pages/admin/AdminPrizeSearch";
+import AdminRedemptions from "./pages/admin/AdminRedemptions";
 import Broadcasts from "./pages/Broadcasts";
+import RedeemPrize from "./pages/RedeemPrize";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +60,7 @@ const App = () => (
             <Route path="/historico" element={<History />} />
             <Route path="/creditos" element={<Credits />} />
             <Route path="/roleta" element={<Roulette />} />
+            <Route path="/resgatar/:prizeId" element={<RedeemPrize />} />
             <Route path="/promocoes" element={<Promotions />} />
             <Route path="/novidades" element={<News />} />
             <Route path="/mensagens" element={<Broadcasts />} />
@@ -73,6 +76,7 @@ const App = () => (
             <Route path="/admin/promocoes" element={<AdminPromotions />} />
             <Route path="/admin/roleta" element={<AdminRoulette />} />
             <Route path="/admin/premios" element={<AdminPrizeSearch />} />
+            <Route path="/admin/resgates" element={<AdminRedemptions />} />
             <Route path="/admin/chat" element={<AdminChat />} />
             <Route path="/admin/config" element={<AdminSettings />} />
             <Route path="/admin/notificacoes" element={<AdminNotifications />} />

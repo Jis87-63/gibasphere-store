@@ -299,76 +299,13 @@ const Roulette: React.FC = () => {
     }
   };
 
-  const handleClaimPrize = async () => {
-    if (!wonPrize || !user) return;
-
-    // Get active support session or create one
-    const sessionsRef = ref(database, `supportSessions/${user.uid}`);
-    const sessionsSnap = await get(sessionsRef);
+  const handleClaimPrize = () => {
+    if (!wonPrize) return;
     
-    let sessionId: string;
-    
-    if (sessionsSnap.exists()) {
-      const sessions = sessionsSnap.val();
-      const activeSession = Object.entries(sessions).find(
-        ([, value]: [string, any]) => value.status === 'active'
-      );
-      
-      if (activeSession) {
-        sessionId = activeSession[0];
-      } else {
-        // Create new session
-        const sessionRef = push(ref(database, `supportSessions/${user.uid}`));
-        sessionId = sessionRef.key!;
-        await set(sessionRef, {
-          userId: user.uid,
-          userName: userData?.name || 'Usuário',
-          status: 'active',
-          createdAt: new Date().toISOString(),
-          lastMessageAt: new Date().toISOString(),
-        });
-      }
-    } else {
-      // Create new session
-      const sessionRef = push(ref(database, `supportSessions/${user.uid}`));
-      sessionId = sessionRef.key!;
-      await set(sessionRef, {
-        userId: user.uid,
-        userName: userData?.name || 'Usuário',
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        lastMessageAt: new Date().toISOString(),
-      });
-    }
-
-    // Send claim message
-    const messageText = `${userData?.name || 'Usuário'}\nAcabou de Vencer na Roleta\nId do prêmio ${wonPrize.id}`;
-    
-    const messageRef = push(ref(database, `supportMessages/${user.uid}/${sessionId}`));
-    await set(messageRef, {
-      text: messageText,
-      sender: 'user',
-      status: 'sent',
-      createdAt: new Date().toISOString(),
-      isPrizeClaim: true,
-      prizeId: wonPrize.id,
-    });
-
-    // Update session
-    await set(ref(database, `supportSessions/${user.uid}/${sessionId}/lastMessage`), messageText);
-    await set(ref(database, `supportSessions/${user.uid}/${sessionId}/lastMessageAt`), new Date().toISOString());
-
-    // Mark prize as claimed
-    await set(ref(database, `wonPrizes/${wonPrize.id}/claimed`), true);
-
     setShowWinDialog(false);
     
-    toast({
-      title: 'Prêmio reivindicado!',
-      description: 'Sua mensagem foi enviada ao suporte.',
-    });
-
-    navigate('/suporte');
+    // Navigate to redemption page instead of sending message to support
+    navigate(`/resgatar/${wonPrize.id}`);
   };
 
   const Header = (

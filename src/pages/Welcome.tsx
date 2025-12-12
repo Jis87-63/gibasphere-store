@@ -18,17 +18,17 @@ const Welcome: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    // Load products for carousel
-    const productsRef = ref(database, 'products');
-    onValue(productsRef, (snapshot) => {
+    // Load banners (same as Home carousel)
+    const bannersRef = ref(database, 'banners');
+    onValue(bannersRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        const productsArray = Object.entries(data).map(([id, value]: [string, any]) => ({
+        const bannersArray = Object.entries(data).map(([id, value]: [string, any]) => ({
           id,
-          name: value.name,
+          name: value.title || '',
           image: value.image,
         }));
-        setProducts(productsArray.slice(0, 6)); // Show first 6 products
+        setProducts(bannersArray);
       }
     });
   }, []);
@@ -65,7 +65,7 @@ const Welcome: React.FC = () => {
           Bem-vindo à <span className="text-primary font-medium">MozStore</span>
         </motion.p>
 
-        {/* Products Grid - Show all items */}
+        {/* Carousel - Same items as Home */}
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -73,23 +73,7 @@ const Welcome: React.FC = () => {
           className="mb-6"
         >
           {carouselItems.length > 0 ? (
-            <div className="grid grid-cols-3 gap-2">
-              {carouselItems.map((item, index) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.3 + index * 0.05 }}
-                  className="aspect-square rounded-xl overflow-hidden bg-card"
-                >
-                  <img 
-                    src={item.image} 
-                    alt={item.title} 
-                    className="w-full h-full object-cover"
-                  />
-                </motion.div>
-              ))}
-            </div>
+            <Carousel items={carouselItems} autoPlay={true} interval={4000} />
           ) : (
             <div className="aspect-[2/1] rounded-xl gradient-primary shadow-glow flex items-center justify-center">
               <ShoppingBag className="w-16 h-16 text-primary-foreground opacity-80" />
