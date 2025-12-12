@@ -2,12 +2,22 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { database, storage } from '@/lib/firebase';
-import { ref, onValue, set, push } from 'firebase/database';
+import { ref, onValue, set, push, remove } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { ArrowLeft, Send, Paperclip, Loader2, Circle, CheckCheck, User, Copy } from 'lucide-react';
+import { ArrowLeft, Send, Paperclip, Loader2, Circle, CheckCheck, User, Copy, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface ChatSession {
   id: string;
@@ -40,6 +50,9 @@ const AdminChat: React.FC = () => {
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<Message | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -184,6 +197,35 @@ const AdminChat: React.FC = () => {
     set(ref(database, `supportSessions/${userId}/${sessionId}/adminTyping`), typing);
   };
 
+  const handleDeleteMessage = async () => {
+    if (!selectedSession || !messageToDelete) return;
+    
+    const [userId, sessionId] = selectedSession.id.split('/');
+    
+    try {
+      await remove(ref(database, `supportMessages/${userId}/${sessionId}/${messageToDelete.id}`));
+      toast.success('Mensagem eliminada');
+      setShowDeleteConfirm(false);
+      setMessageToDelete(null);
+    } catch (error) {
+      toast.error('Erro ao eliminar mensagem');
+    }
+  };
+
+  const handleClearConversation = async () => {
+    if (!selectedSession) return;
+    
+    const [userId, sessionId] = selectedSession.id.split('/');
+    
+    try {
+      await remove(ref(database, `supportMessages/${userId}/${sessionId}`));
+      toast.success('Conversa limpa');
+      setShowClearConfirm(false);
+    } catch (error) {
+      toast.error('Erro ao limpar conversa');
+    }
+  };
+
   const handleCopyPrizeCode = (prizeId: string) => {
     navigator.clipboard.writeText(prizeId);
     toast.success('Código copiado!');
@@ -280,60 +322,79 @@ const AdminChat: React.FC = () => {
               <h2 className="font-medium text-foreground">{selectedSession.userName}</h2>
               <p className="text-xs text-muted-foreground">{selectedSession.userEmail}</p>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowClearConfirm(true)}
+              className="text-destructive"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
           </div>
 
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.map((message) => (
               <motion.div
                 key={message.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`flex ${message.sender === 'admin' ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${message.sender === 'admin' ? 'justify-end' : 'justify-start'} group`}
               >
-                <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                  message.sender === 'admin' 
-                    ? 'bg-primary text-primary-foreground rounded-br-sm' 
-                    : 'bg-card text-foreground rounded-bl-sm'
-                }`}>
-                  {/* Prize Claim Badge */}
-                  {message.isPrizeClaim && message.prizeId && (
-                    <div className="bg-yellow-500/20 text-yellow-500 rounded-lg p-2 mb-2 flex items-center justify-between">
-                      <span className="text-xs font-medium">🎁 Prêmio: {message.prizeId}</span>
-                      <button 
-                        onClick={() => handleCopyPrizeCode(message.prizeId!)}
-                        className="p-1 hover:bg-yellow-500/30 rounded"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </button>
-                    </div>
-                  )}
-
-                  {message.fileUrl && message.fileType === 'image' ? (
-                    <img src={message.fileUrl} alt="Image" className="max-w-full rounded-lg mb-1" />
-                  ) : message.fileUrl && message.fileType === 'audio' ? (
-                    <audio controls className="max-w-full">
-                      <source src={message.fileUrl} type="audio/mpeg" />
-                    </audio>
-                  ) : message.fileUrl ? (
-                    <a href={message.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm underline">
-                      📎 {message.text}
-                    </a>
-                  ) : (
-                    <p className="text-sm whitespace-pre-wrap">{message.text}</p>
-                  )}
-                  <div className="flex items-center justify-end gap-1 mt-1">
-                    <span className="text-[10px] opacity-70">{formatTime(message.timestamp)}</span>
-                    {message.sender === 'admin' && (
-                      message.status === 'seen' ? (
-                        <CheckCheck className="w-3 h-3 text-blue-400" />
-                      ) : message.status === 'delivered' ? (
-                        <CheckCheck className="w-3 h-3 opacity-70" />
-                      ) : (
-                        <Circle className="w-2 h-2 opacity-70" />
-                      )
+                <div className="relative">
+                  <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                    message.sender === 'admin' 
+                      ? 'bg-primary text-primary-foreground rounded-br-sm' 
+                      : 'bg-card text-foreground rounded-bl-sm'
+                  }`}>
+                    {/* Prize Claim Badge */}
+                    {message.isPrizeClaim && message.prizeId && (
+                      <div className="bg-yellow-500/20 text-yellow-500 rounded-lg p-2 mb-2 flex items-center justify-between">
+                        <span className="text-xs font-medium">🎁 Prêmio: {message.prizeId}</span>
+                        <button 
+                          onClick={() => handleCopyPrizeCode(message.prizeId!)}
+                          className="p-1 hover:bg-yellow-500/30 rounded"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
+                      </div>
                     )}
+
+                    {message.fileUrl && message.fileType === 'image' ? (
+                      <img src={message.fileUrl} alt="Image" className="max-w-full rounded-lg mb-1" />
+                    ) : message.fileUrl && message.fileType === 'audio' ? (
+                      <audio controls className="max-w-full">
+                        <source src={message.fileUrl} type="audio/mpeg" />
+                      </audio>
+                    ) : message.fileUrl ? (
+                      <a href={message.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm underline">
+                        📎 {message.text}
+                      </a>
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                    )}
+                    <div className="flex items-center justify-end gap-1 mt-1">
+                      <span className="text-[10px] opacity-70">{formatTime(message.timestamp)}</span>
+                      {message.sender === 'admin' && (
+                        message.status === 'seen' ? (
+                          <CheckCheck className="w-3 h-3 text-blue-400" />
+                        ) : message.status === 'delivered' ? (
+                          <CheckCheck className="w-3 h-3 opacity-70" />
+                        ) : (
+                          <Circle className="w-2 h-2 opacity-70" />
+                        )
+                      )}
+                    </div>
                   </div>
+                  {/* Delete button */}
+                  <button
+                    onClick={() => {
+                      setMessageToDelete(message);
+                      setShowDeleteConfirm(true);
+                    }}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
                 </div>
               </motion.div>
             ))}
@@ -368,6 +429,42 @@ const AdminChat: React.FC = () => {
           </form>
         </div>
       )}
+
+      {/* Delete Message Confirmation */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar Mensagem</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja eliminar esta mensagem? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteMessage} className="bg-destructive text-destructive-foreground">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Clear Conversation Confirmation */}
+      <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar Conversa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja eliminar todas as mensagens desta conversa? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearConversation} className="bg-destructive text-destructive-foreground">
+              Limpar Tudo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
