@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
+import { database } from '@/lib/firebase';
+import { ref, get } from 'firebase/database';
 
 interface ProductCardProps {
   id: string;
@@ -10,6 +12,7 @@ interface ProductCardProps {
   realPrice: number;
   featured?: boolean;
   promotion?: boolean;
+  parentProduct?: string;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -19,15 +22,46 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   realPrice,
   featured,
   promotion,
+  parentProduct,
 }) => {
   const navigate = useNavigate();
   const storePrice = realPrice - 50;
+  const [hasChildren, setHasChildren] = useState(false);
+
+  useEffect(() => {
+    // Check if this product has child products (is a parent)
+    const checkChildren = async () => {
+      const productsRef = ref(database, 'products');
+      const snapshot = await get(productsRef);
+      if (snapshot.exists()) {
+        const products = snapshot.val();
+        const hasChildProducts = Object.values(products).some(
+          (p: any) => p.parentProduct === id
+        );
+        setHasChildren(hasChildProducts);
+      }
+    };
+    
+    // Only check for children if this is not already a child product
+    if (!parentProduct) {
+      checkChildren();
+    }
+  }, [id, parentProduct]);
+
+  const handleClick = () => {
+    // If this product has children, go to items page; otherwise go to details
+    if (hasChildren) {
+      navigate(`/produto/${id}/itens`);
+    } else {
+      navigate(`/produto/${id}`);
+    }
+  };
 
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
-      onClick={() => navigate(`/produto/${id}`)}
+      onClick={handleClick}
       className="relative bg-card rounded-xl overflow-hidden shadow-card cursor-pointer group"
     >
       {featured && (
@@ -61,6 +95,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {storePrice} MT
           </span>
         </div>
+        {hasChildren && (
+          <p className="text-xs text-muted-foreground mt-1">Ver opções →</p>
+        )}
       </div>
     </motion.div>
   );
