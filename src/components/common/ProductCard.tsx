@@ -13,6 +13,7 @@ interface ProductCardProps {
   featured?: boolean;
   promotion?: boolean;
   parentProduct?: string;
+  isParentProduct?: boolean;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -23,6 +24,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   featured,
   promotion,
   parentProduct,
+  isParentProduct,
 }) => {
   const navigate = useNavigate();
   const storePrice = realPrice - 50;
@@ -42,15 +44,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       }
     };
     
-    // Only check for children if this is not already a child product
-    if (!parentProduct) {
+    // Only check for children if this is not already a child product and is marked as parent
+    if (!parentProduct && isParentProduct) {
+      setHasChildren(true);
+    } else if (!parentProduct) {
       checkChildren();
     }
-  }, [id, parentProduct]);
+  }, [id, parentProduct, isParentProduct]);
 
   const handleClick = () => {
-    // If this product has children, go to items page; otherwise go to details
-    if (hasChildren) {
+    // If this product has children or is a parent product, go to items page; otherwise go to details
+    if (hasChildren || isParentProduct) {
       navigate(`/produto/${id}/itens`);
     } else {
       navigate(`/produto/${id}`);
@@ -87,16 +91,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
       <div className="p-3">
         <h3 className="text-sm font-medium text-foreground truncate">{name}</h3>
-        <div className="flex items-center gap-2 mt-1">
-          <span className="text-xs text-muted-foreground line-through">
-            {realPrice} MT
-          </span>
-          <span className="text-sm font-bold text-primary">
-            {storePrice} MT
-          </span>
-        </div>
-        {hasChildren && (
+        {isParentProduct ? (
           <p className="text-xs text-muted-foreground mt-1">Ver opções →</p>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-muted-foreground line-through">
+                {realPrice} MT
+              </span>
+              <span className="text-sm font-bold text-primary">
+                {storePrice} MT
+              </span>
+            </div>
+            {hasChildren && !isParentProduct && (
+              <p className="text-xs text-muted-foreground mt-1">Ver opções →</p>
+            )}
+          </>
         )}
       </div>
     </motion.div>
