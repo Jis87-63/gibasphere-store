@@ -21,6 +21,9 @@ interface Product {
   isRecent?: boolean;
   recentUntil?: string;
   parentProduct?: string;
+  isParentProduct?: boolean;
+  isBestSeller?: boolean;
+  bestSellerOrder?: number;
 }
 
 interface Category {
@@ -85,19 +88,24 @@ const Home: React.FC = () => {
     });
   }, []);
 
-  // Filter only main products (without parentProduct)
+  // Filter only main products (without parentProduct) - includes parent products for featured section
   const mainProducts = products.filter(p => !p.parentProduct);
   
-  const featuredProducts = mainProducts.filter(p => p.featured);
+  // Featured: show parent products and featured products
+  const featuredProducts = mainProducts.filter(p => p.featured || p.isParentProduct);
   
-  // Recent products: only those with isRecent=true AND recentUntil not expired
+  // Recent products: only those with isRecent=true AND recentUntil not expired (exclude parent products)
   const recentProducts = mainProducts.filter(p => {
+    if (p.isParentProduct) return false;
     if (!p.isRecent) return false;
     if (!p.recentUntil) return false;
     return new Date(p.recentUntil) > new Date();
   });
   
-  const topProducts = mainProducts.slice(0, 4);
+  // Best sellers: products marked as best seller, sorted by order
+  const bestSellerProducts = products
+    .filter(p => p.isBestSeller && !p.parentProduct && !p.isParentProduct)
+    .sort((a, b) => (a.bestSellerOrder || 999) - (b.bestSellerOrder || 999));
 
   const Header = (
     <div className="flex items-center justify-between px-4 py-3">
@@ -256,8 +264,8 @@ const Home: React.FC = () => {
           </motion.section>
         )}
 
-        {/* Top Selling */}
-        {topProducts.length > 0 && (
+        {/* Best Sellers */}
+        {bestSellerProducts.length > 0 && (
           <motion.section
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -266,9 +274,16 @@ const Home: React.FC = () => {
           >
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-foreground">Mais Vendidos</h2>
+              <button
+                onClick={() => navigate('/loja?filter=bestsellers')}
+                className="flex items-center gap-1 text-sm text-primary"
+              >
+                Ver todos
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {topProducts.map((product) => (
+              {bestSellerProducts.slice(0, 4).map((product) => (
                 <ProductCard key={product.id} {...product} />
               ))}
             </div>

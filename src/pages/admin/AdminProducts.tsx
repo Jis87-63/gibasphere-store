@@ -21,6 +21,9 @@ interface Product {
   isRecent: boolean;
   recentUntil?: string;
   parentProduct?: string;
+  isParentProduct?: boolean;
+  isBestSeller?: boolean;
+  bestSellerOrder?: number;
   createdAt?: string;
 }
 
@@ -48,6 +51,9 @@ const AdminProducts: React.FC = () => {
     isRecent: true,
     recentDays: '7',
     parentProduct: '',
+    isParentProduct: false,
+    isBestSeller: false,
+    bestSellerOrder: '',
   });
 
   useEffect(() => {
@@ -92,7 +98,8 @@ const AdminProducts: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.realPrice || !formData.category) {
+    // Parent products don't need price
+    if (!formData.name || !formData.category || (!formData.isParentProduct && !formData.realPrice)) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
@@ -107,13 +114,16 @@ const AdminProducts: React.FC = () => {
         name: formData.name,
         description: formData.description,
         image: formData.image,
-        realPrice: parseFloat(formData.realPrice),
+        realPrice: formData.isParentProduct ? 0 : parseFloat(formData.realPrice),
         category: formData.category,
         featured: formData.featured,
         promotion: formData.promotion,
         isRecent: formData.isRecent,
         recentUntil,
         parentProduct: formData.parentProduct || null,
+        isParentProduct: formData.isParentProduct,
+        isBestSeller: formData.isBestSeller,
+        bestSellerOrder: formData.bestSellerOrder ? parseInt(formData.bestSellerOrder) : null,
         updatedAt: new Date().toISOString(),
       };
 
@@ -142,13 +152,16 @@ const AdminProducts: React.FC = () => {
       name: product.name,
       description: product.description || '',
       image: product.image,
-      realPrice: product.realPrice.toString(),
+      realPrice: product.realPrice?.toString() || '',
       category: product.category,
       featured: product.featured,
       promotion: product.promotion,
       isRecent: product.isRecent ?? true,
       recentDays: daysRemaining.toString(),
       parentProduct: product.parentProduct || '',
+      isParentProduct: product.isParentProduct || false,
+      isBestSeller: product.isBestSeller || false,
+      bestSellerOrder: product.bestSellerOrder?.toString() || '',
     });
     setShowModal(true);
   };
@@ -164,7 +177,7 @@ const AdminProducts: React.FC = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', description: '', image: '', realPrice: '', category: '', featured: false, promotion: false, isRecent: true, recentDays: '7', parentProduct: '' });
+    setFormData({ name: '', description: '', image: '', realPrice: '', category: '', featured: false, promotion: false, isRecent: true, recentDays: '7', parentProduct: '', isParentProduct: false, isBestSeller: false, bestSellerOrder: '' });
     setEditingProduct(null);
     setShowModal(false);
   };
@@ -201,10 +214,15 @@ const AdminProducts: React.FC = () => {
                   Sub-item de: {parentProducts.find(p => p.id === product.parentProduct)?.name || 'Produto'}
                 </p>
               )}
-              <p className="text-sm text-primary">{product.realPrice} MT</p>
+              {product.isParentProduct ? (
+                <p className="text-sm text-muted-foreground italic">Produto Pai</p>
+              ) : (
+                <p className="text-sm text-primary">{product.realPrice} MT</p>
+              )}
               <div className="flex flex-wrap gap-1 mt-1">
                 {product.featured && <span className="text-xs bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded">Destaque</span>}
                 {product.promotion && <span className="text-xs bg-red-500/20 text-red-500 px-2 py-0.5 rounded">Promoção</span>}
+                {product.isBestSeller && <span className="text-xs bg-blue-500/20 text-blue-500 px-2 py-0.5 rounded">Mais Vendido</span>}
                 {product.isRecent && product.recentUntil && new Date(product.recentUntil) > new Date() && (
                   <span className="text-xs bg-green-500/20 text-green-500 px-2 py-0.5 rounded">Recente</span>
                 )}
@@ -289,17 +307,31 @@ const AdminProducts: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-sm text-muted-foreground mb-1 block">Preço Real (MT) *</label>
-                  <Input
-                    type="number"
-                    value={formData.realPrice}
-                    onChange={(e) => setFormData(prev => ({ ...prev, realPrice: e.target.value }))}
-                    placeholder="450"
-                  />
-                  {formData.realPrice && (
-                    <p className="text-xs text-primary mt-1">Preço da loja: {parseFloat(formData.realPrice) - 50} MT</p>
-                  )}
+                  <label className="flex items-center gap-2 text-foreground mb-3">
+                    <input
+                      type="checkbox"
+                      checked={formData.isParentProduct}
+                      onChange={(e) => setFormData(prev => ({ ...prev, isParentProduct: e.target.checked, realPrice: e.target.checked ? '' : prev.realPrice }))}
+                      className="w-4 h-4 rounded border-input"
+                    />
+                    É um Produto Pai (sem preço, agrupa sub-itens)
+                  </label>
                 </div>
+
+                {!formData.isParentProduct && (
+                  <div>
+                    <label className="text-sm text-muted-foreground mb-1 block">Preço Real (MT) *</label>
+                    <Input
+                      type="number"
+                      value={formData.realPrice}
+                      onChange={(e) => setFormData(prev => ({ ...prev, realPrice: e.target.value }))}
+                      placeholder="450"
+                    />
+                    {formData.realPrice && (
+                      <p className="text-xs text-primary mt-1">Preço da loja: {parseFloat(formData.realPrice) - 50} MT</p>
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <label className="text-sm text-muted-foreground mb-1 block">Categoria *</label>
@@ -351,6 +383,30 @@ const AdminProducts: React.FC = () => {
                     />
                     Promoção
                   </label>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 text-foreground">
+                      <input
+                        type="checkbox"
+                        checked={formData.isBestSeller}
+                        onChange={(e) => setFormData(prev => ({ ...prev, isBestSeller: e.target.checked }))}
+                        className="w-4 h-4 rounded border-input"
+                      />
+                      Mais Vendido
+                    </label>
+                    {formData.isBestSeller && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Ordem:</span>
+                        <Input
+                          type="number"
+                          value={formData.bestSellerOrder}
+                          onChange={(e) => setFormData(prev => ({ ...prev, bestSellerOrder: e.target.value }))}
+                          className="w-16 h-8 text-sm"
+                          min="1"
+                          placeholder="1"
+                        />
+                      </div>
+                    )}
+                  </div>
                   <div className="flex items-center gap-3">
                     <label className="flex items-center gap-2 text-foreground">
                       <input
