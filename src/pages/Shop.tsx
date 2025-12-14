@@ -22,7 +22,7 @@ interface Product {
 interface Category {
   id: string;
   name: string;
-  icon: string;
+  image: string;
 }
 
 const Shop: React.FC = () => {
@@ -119,7 +119,7 @@ const Shop: React.FC = () => {
                   : 'bg-card text-muted-foreground hover:text-foreground'
               }`}
             >
-              {category.icon} {category.name}
+              {category.name}
             </button>
           ))}
         </div>

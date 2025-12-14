@@ -35,9 +35,21 @@ export const BottomNav: React.FC = () => {
 
     const unsubPromotions = onValue(promotionsRef, (snapshot) => {
       if (snapshot.exists()) {
-        promotions = Object.keys(snapshot.val());
+        const promoData = snapshot.val();
+        // Filter only non-expired promotions
+        promotions = Object.entries(promoData)
+          .filter(([_, value]: [string, any]) => {
+            if (value.expiresAt) {
+              return new Date(value.expiresAt) > new Date();
+            }
+            return true;
+          })
+          .map(([id]) => id);
         const unread = promotions.filter(id => !readPromotions.includes(id)).length;
         setPromotionsCount(unread);
+      } else {
+        promotions = [];
+        setPromotionsCount(0);
       }
     });
 
@@ -58,9 +70,21 @@ export const BottomNav: React.FC = () => {
 
     const unsubNews = onValue(newsRef, (snapshot) => {
       if (snapshot.exists()) {
-        news = Object.keys(snapshot.val());
+        const newsData = snapshot.val();
+        // Filter only non-expired news
+        news = Object.entries(newsData)
+          .filter(([_, value]: [string, any]) => {
+            if (value.expiresAt) {
+              return new Date(value.expiresAt) > new Date();
+            }
+            return true;
+          })
+          .map(([id]) => id);
         const unread = news.filter(id => !readNews.includes(id)).length;
         setNewsCount(unread);
+      } else {
+        news = [];
+        setNewsCount(0);
       }
     });
 

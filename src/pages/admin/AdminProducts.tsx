@@ -18,6 +18,10 @@ interface Product {
   category: string;
   featured: boolean;
   promotion: boolean;
+  isRecent: boolean;
+  recentUntil?: string;
+  parentProduct?: string;
+  createdAt?: string;
 }
 
 interface Category {
@@ -41,6 +45,9 @@ const AdminProducts: React.FC = () => {
     category: '',
     featured: false,
     promotion: false,
+    isRecent: true,
+    recentDays: '7',
+    parentProduct: '',
   });
 
   useEffect(() => {
@@ -92,6 +99,10 @@ const AdminProducts: React.FC = () => {
 
     setLoading(true);
     try {
+      const recentUntil = formData.isRecent 
+        ? new Date(Date.now() + parseInt(formData.recentDays) * 24 * 60 * 60 * 1000).toISOString()
+        : null;
+
       const productData = {
         name: formData.name,
         description: formData.description,
@@ -100,6 +111,9 @@ const AdminProducts: React.FC = () => {
         category: formData.category,
         featured: formData.featured,
         promotion: formData.promotion,
+        isRecent: formData.isRecent,
+        recentUntil,
+        parentProduct: formData.parentProduct || null,
         updatedAt: new Date().toISOString(),
       };
 
@@ -121,6 +135,9 @@ const AdminProducts: React.FC = () => {
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
+    const daysRemaining = product.recentUntil 
+      ? Math.max(0, Math.ceil((new Date(product.recentUntil).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+      : 7;
     setFormData({
       name: product.name,
       description: product.description || '',
@@ -129,6 +146,9 @@ const AdminProducts: React.FC = () => {
       category: product.category,
       featured: product.featured,
       promotion: product.promotion,
+      isRecent: product.isRecent ?? true,
+      recentDays: daysRemaining.toString(),
+      parentProduct: product.parentProduct || '',
     });
     setShowModal(true);
   };
@@ -144,10 +164,13 @@ const AdminProducts: React.FC = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', description: '', image: '', realPrice: '', category: '', featured: false, promotion: false });
+    setFormData({ name: '', description: '', image: '', realPrice: '', category: '', featured: false, promotion: false, isRecent: true, recentDays: '7', parentProduct: '' });
     setEditingProduct(null);
     setShowModal(false);
   };
+
+  // Filter parent products (products without parentProduct)
+  const parentProducts = products.filter(p => !p.parentProduct);
 
   return (
     <div className="min-h-screen bg-background p-4 safe-top">
@@ -173,10 +196,18 @@ const AdminProducts: React.FC = () => {
             <img src={product.image || '/placeholder.svg'} alt={product.name} className="w-16 h-16 rounded-lg object-cover" />
             <div className="flex-1 min-w-0">
               <h3 className="font-medium text-foreground truncate">{product.name}</h3>
+              {product.parentProduct && (
+                <p className="text-xs text-muted-foreground">
+                  Sub-item de: {parentProducts.find(p => p.id === product.parentProduct)?.name || 'Produto'}
+                </p>
+              )}
               <p className="text-sm text-primary">{product.realPrice} MT</p>
-              <div className="flex gap-1 mt-1">
+              <div className="flex flex-wrap gap-1 mt-1">
                 {product.featured && <span className="text-xs bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded">Destaque</span>}
                 {product.promotion && <span className="text-xs bg-red-500/20 text-red-500 px-2 py-0.5 rounded">Promoção</span>}
+                {product.isRecent && product.recentUntil && new Date(product.recentUntil) > new Date() && (
+                  <span className="text-xs bg-green-500/20 text-green-500 px-2 py-0.5 rounded">Recente</span>
+                )}
               </div>
             </div>
             <div className="flex flex-col gap-2">
@@ -284,7 +315,24 @@ const AdminProducts: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="flex gap-4">
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Produto Pai (opcional)</label>
+                  <select
+                    value={formData.parentProduct}
+                    onChange={(e) => setFormData(prev => ({ ...prev, parentProduct: e.target.value }))}
+                    className="w-full px-3 py-2 bg-background border border-input rounded-md text-foreground"
+                  >
+                    <option value="">Nenhum (produto principal)</option>
+                    {parentProducts.filter(p => p.id !== editingProduct?.id).map(prod => (
+                      <option key={prod.id} value={prod.id}>{prod.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Se este for um sub-item (ex: variante de recarga), selecione o produto principal
+                  </p>
+                </div>
+
+                <div className="space-y-3">
                   <label className="flex items-center gap-2 text-foreground">
                     <input
                       type="checkbox"
@@ -303,6 +351,30 @@ const AdminProducts: React.FC = () => {
                     />
                     Promoção
                   </label>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 text-foreground">
+                      <input
+                        type="checkbox"
+                        checked={formData.isRecent}
+                        onChange={(e) => setFormData(prev => ({ ...prev, isRecent: e.target.checked }))}
+                        className="w-4 h-4 rounded border-input"
+                      />
+                      Mostrar como Recente
+                    </label>
+                    {formData.isRecent && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">por</span>
+                        <Input
+                          type="number"
+                          value={formData.recentDays}
+                          onChange={(e) => setFormData(prev => ({ ...prev, recentDays: e.target.value }))}
+                          className="w-16 h-8 text-sm"
+                          min="1"
+                        />
+                        <span className="text-xs text-muted-foreground">dias</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <Button type="submit" className="w-full" disabled={loading}>

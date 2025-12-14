@@ -18,12 +18,15 @@ interface Product {
   category: string;
   featured?: boolean;
   promotion?: boolean;
+  isRecent?: boolean;
+  recentUntil?: string;
+  parentProduct?: string;
 }
 
 interface Category {
   id: string;
   name: string;
-  icon: string;
+  image: string;
 }
 
 interface Banner {
@@ -82,9 +85,19 @@ const Home: React.FC = () => {
     });
   }, []);
 
-  const featuredProducts = products.filter(p => p.featured);
-  const recentProducts = [...products].reverse().slice(0, 6);
-  const topProducts = products.slice(0, 4);
+  // Filter only main products (without parentProduct)
+  const mainProducts = products.filter(p => !p.parentProduct);
+  
+  const featuredProducts = mainProducts.filter(p => p.featured);
+  
+  // Recent products: only those with isRecent=true AND recentUntil not expired
+  const recentProducts = mainProducts.filter(p => {
+    if (!p.isRecent) return false;
+    if (!p.recentUntil) return false;
+    return new Date(p.recentUntil) > new Date();
+  });
+  
+  const topProducts = mainProducts.slice(0, 4);
 
   const Header = (
     <div className="flex items-center justify-between px-4 py-3">
@@ -165,10 +178,24 @@ const Home: React.FC = () => {
                 <button
                   key={category.id}
                   onClick={() => navigate(`/loja?categoria=${category.id}`)}
-                  className="flex-shrink-0 flex flex-col items-center gap-2 px-4 py-3 bg-card rounded-xl min-w-[80px]"
+                  className="flex-shrink-0 relative w-20 h-20 rounded-xl overflow-hidden"
                 >
-                  <span className="text-2xl">{category.icon}</span>
-                  <span className="text-xs text-muted-foreground">{category.name}</span>
+                  {category.image ? (
+                    <>
+                      <img 
+                        src={category.image} 
+                        alt={category.name} 
+                        className="w-full h-full object-cover blur-[2px]"
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <span className="text-white text-xs font-semibold text-center px-1 leading-tight">{category.name}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-full h-full bg-card flex items-center justify-center">
+                      <span className="text-xs text-muted-foreground text-center">{category.name}</span>
+                    </div>
+                  )}
                 </button>
               ))}
             </div>

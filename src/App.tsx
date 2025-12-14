@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
 import ProductDetails from "./pages/ProductDetails";
+import ProductItems from "./pages/ProductItems";
 import Payment from "./pages/Payment";
 import History from "./pages/History";
 import Credits from "./pages/Credits";
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/home" element={<Home />} />
             <Route path="/loja" element={<Shop />} />
             <Route path="/produto/:id" element={<ProductDetails />} />
+            <Route path="/produto/:productId/itens" element={<ProductItems />} />
             <Route path="/pagamento/:id" element={<Payment />} />
             <Route path="/historico" element={<History />} />
             <Route path="/creditos" element={<Credits />} />
