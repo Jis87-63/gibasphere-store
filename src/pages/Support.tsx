@@ -121,17 +121,22 @@ const Support: React.FC = () => {
 
     setNewMessage('');
 
-    // Check if admin hasn't responded in 1 minute
+    // Check if admin hasn't responded in 1 minute - only send once per session
     setTimeout(async () => {
       const messagesSnap = await get(ref(database, `supportMessages/${user.uid}/${sessionId}`));
       if (messagesSnap.exists()) {
         const msgs = Object.values(messagesSnap.val()) as Message[];
+        
+        // Check if auto-reply was already sent in this session
+        const hasAutoReply = msgs.some((msg: any) => msg.isAutoReply);
+        if (hasAutoReply) return;
+        
         const lastMsg = msgs.sort((a, b) => 
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         )[0];
 
         if (lastMsg.sender === 'user') {
-          // Send auto-reply
+          // Send auto-reply only once
           const autoReplyRef = push(ref(database, `supportMessages/${user.uid}/${sessionId}`));
           await set(autoReplyRef, {
             text: `Olá ${userData?.name || 'cliente'}, obrigado por entrar em contato. Estamos respondendo várias mensagens, por favor aguarde que responderemos já.`,

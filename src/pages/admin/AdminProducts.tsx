@@ -320,16 +320,14 @@ const AdminProducts: React.FC = () => {
 
                 {!formData.isParentProduct && (
                   <div>
-                    <label className="text-sm text-muted-foreground mb-1 block">Preço Real (MT) *</label>
+                    <label className="text-sm text-muted-foreground mb-1 block">Preço (MT) *</label>
                     <Input
                       type="number"
                       value={formData.realPrice}
                       onChange={(e) => setFormData(prev => ({ ...prev, realPrice: e.target.value }))}
                       placeholder="450"
                     />
-                    {formData.realPrice && (
-                      <p className="text-xs text-primary mt-1">Preço da loja: {parseFloat(formData.realPrice) - 50} MT</p>
-                    )}
+                    <p className="text-xs text-muted-foreground mt-1">Este é o preço que será exibido na loja</p>
                   </div>
                 )}
 
