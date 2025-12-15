@@ -17,6 +17,9 @@ interface Product {
   category: string;
   featured?: boolean;
   promotion?: boolean;
+  isParentProduct?: boolean;
+  parentProduct?: string;
+  isBestSeller?: boolean;
 }
 
 interface Category {
@@ -29,6 +32,7 @@ const Shop: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const categoryParam = searchParams.get('categoria');
+  const filterParam = searchParams.get('filter');
   
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -63,12 +67,31 @@ const Shop: React.FC = () => {
     });
   }, []);
 
+  // Filter products based on params
   const filteredProducts = products.filter((product) => {
+    // For bestsellers filter, show only best sellers (not parent products)
+    if (filterParam === 'bestsellers') {
+      return product.isBestSeller && !product.parentProduct && !product.isParentProduct;
+    }
+    
+    // For featured filter, show parent products and featured
+    if (filterParam === 'featured') {
+      return (product.isParentProduct || product.featured) && !product.parentProduct;
+    }
+    
+    // Default: show only main products (no sub-items) - parent products included
+    const isMainProduct = !product.parentProduct;
     const matchesCategory = !selectedCategory || product.category === selectedCategory;
     const matchesSearch = !searchQuery || 
       product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+    return isMainProduct && matchesCategory && matchesSearch;
   });
+
+  const getPageTitle = () => {
+    if (filterParam === 'bestsellers') return 'Mais Vendidos';
+    if (filterParam === 'featured') return 'Em Destaque';
+    return 'Loja';
+  };
 
   const Header = (
     <div className="px-4 py-3">
@@ -79,50 +102,54 @@ const Shop: React.FC = () => {
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-xl font-semibold text-foreground">Loja</h1>
+        <h1 className="text-xl font-semibold text-foreground">{getPageTitle()}</h1>
       </div>
       
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-        <Input
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Buscar produtos..."
-          className="pl-10"
-        />
-      </div>
+      {!filterParam && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar produtos..."
+            className="pl-10"
+          />
+        </div>
+      )}
     </div>
   );
 
   return (
     <>
       <PageContainer header={Header}>
-        {/* Categories Filter */}
-        <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
-          <button
-            onClick={() => setSelectedCategory(null)}
-            className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-              !selectedCategory
-                ? 'gradient-primary text-primary-foreground'
-                : 'bg-card text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Todos
-          </button>
-          {categories.map((category) => (
+        {/* Categories Filter - only show when not filtering */}
+        {!filterParam && (
+          <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
             <button
-              key={category.id}
-              onClick={() => setSelectedCategory(category.id)}
+              onClick={() => setSelectedCategory(null)}
               className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                selectedCategory === category.id
+                !selectedCategory
                   ? 'gradient-primary text-primary-foreground'
                   : 'bg-card text-muted-foreground hover:text-foreground'
               }`}
             >
-              {category.name}
+              Todos
             </button>
-          ))}
-        </div>
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  selectedCategory === category.id
+                    ? 'gradient-primary text-primary-foreground'
+                    : 'bg-card text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {category.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Products Grid */}
         {filteredProducts.length > 0 ? (

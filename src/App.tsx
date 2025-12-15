@@ -85,6 +85,7 @@ const App = () => (
             <Route path="/admin/novidades" element={<AdminNews />} />
             <Route path="/admin/broadcasts" element={<AdminBroadcasts />} />
             <Route path="/admin/termos-politicas" element={<AdminTermsPolicies />} />
+            <Route path="/admin/termos" element={<AdminTermsPolicies />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -210,7 +210,7 @@ const Home: React.FC = () => {
           </motion.section>
         )}
 
-        {/* Featured Products */}
+        {/* Featured Products - Horizontal Scroll */}
         {featuredProducts.length > 0 && (
           <motion.section
             initial={{ opacity: 0, y: 10 }}
@@ -221,16 +221,18 @@ const Home: React.FC = () => {
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-foreground">Em Destaque</h2>
               <button
-                onClick={() => navigate('/loja')}
+                onClick={() => navigate('/loja?filter=featured')}
                 className="flex items-center gap-1 text-sm text-primary"
               >
                 Ver mais
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              {featuredProducts.slice(0, 4).map((product) => (
-                <ProductCard key={product.id} {...product} />
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {featuredProducts.map((product) => (
+                <div key={product.id} className="flex-shrink-0 w-40">
+                  <ProductCard {...product} />
+                </div>
               ))}
             </div>
           </motion.section>
