@@ -7,15 +7,27 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { database } from '@/lib/firebase';
-import { ref, get, set, push } from 'firebase/database';
+import { ref, get, set, push, update } from 'firebase/database';
 import { gibrapay } from '@/lib/gibrapay';
-import { ArrowLeft, Loader2, CheckCircle, XCircle, Phone } from 'lucide-react';
+import { ArrowLeft, Loader2, CheckCircle, XCircle, Phone, Ticket, X } from 'lucide-react';
 
 interface Product {
   id: string;
   name: string;
   image: string;
   realPrice: number;
+}
+
+interface Coupon {
+  id: string;
+  code: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  minPurchase: number;
+  maxUses: number;
+  usedCount: number;
+  expiresAt: string | null;
+  active: boolean;
 }
 
 type PaymentStatus = 'idle' | 'processing' | 'success' | 'failed';
@@ -31,6 +43,11 @@ const Payment: React.FC = () => {
   const [status, setStatus] = useState<PaymentStatus>('idle');
   const [loading, setLoading] = useState(true);
   const [creditsPerPurchase, setCreditsPerPurchase] = useState(10);
+  
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -56,7 +73,98 @@ const Payment: React.FC = () => {
     fetchData();
   }, [id]);
 
-  const storePrice = product ? product.realPrice - 50 : 0;
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast({ title: 'Digite um código de cupom', variant: 'destructive' });
+      return;
+    }
+
+    setCouponLoading(true);
+
+    try {
+      const couponsRef = ref(database, 'coupons');
+      const snapshot = await get(couponsRef);
+      
+      if (!snapshot.exists()) {
+        toast({ title: 'Cupom inválido', variant: 'destructive' });
+        setCouponLoading(false);
+        return;
+      }
+
+      const coupons = snapshot.val();
+      let foundCoupon: Coupon | null = null;
+
+      for (const [id, coupon] of Object.entries(coupons) as [string, any][]) {
+        if (coupon.code.toLowerCase() === couponCode.toLowerCase()) {
+          foundCoupon = { id, ...coupon };
+          break;
+        }
+      }
+
+      if (!foundCoupon) {
+        toast({ title: 'Cupom não encontrado', variant: 'destructive' });
+        setCouponLoading(false);
+        return;
+      }
+
+      // Check if coupon is active
+      if (!foundCoupon.active) {
+        toast({ title: 'Este cupom está desativado', variant: 'destructive' });
+        setCouponLoading(false);
+        return;
+      }
+
+      // Check expiration
+      if (foundCoupon.expiresAt && new Date(foundCoupon.expiresAt) < new Date()) {
+        toast({ title: 'Este cupom expirou', variant: 'destructive' });
+        setCouponLoading(false);
+        return;
+      }
+
+      // Check usage limit
+      if (foundCoupon.usedCount >= foundCoupon.maxUses) {
+        toast({ title: 'Este cupom atingiu o limite de usos', variant: 'destructive' });
+        setCouponLoading(false);
+        return;
+      }
+
+      // Check minimum purchase
+      const basePrice = product?.realPrice || 0;
+      if (basePrice < foundCoupon.minPurchase) {
+        toast({ 
+          title: `Compra mínima de ${foundCoupon.minPurchase} MT`, 
+          variant: 'destructive' 
+        });
+        setCouponLoading(false);
+        return;
+      }
+
+      setAppliedCoupon(foundCoupon);
+      setCouponCode('');
+      toast({ title: 'Cupom aplicado com sucesso!' });
+    } catch (error) {
+      toast({ title: 'Erro ao aplicar cupom', variant: 'destructive' });
+    }
+
+    setCouponLoading(false);
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+  };
+
+  const calculateDiscount = () => {
+    if (!appliedCoupon || !product) return 0;
+    
+    const basePrice = product.realPrice;
+    if (appliedCoupon.discountType === 'percentage') {
+      return Math.round((basePrice * appliedCoupon.discountValue) / 100);
+    }
+    return Math.min(appliedCoupon.discountValue, basePrice);
+  };
+
+  const discount = calculateDiscount();
+  const storePrice = product ? Math.max(0, product.realPrice - discount) : 0;
 
   const handlePayment = async () => {
     if (!user || !product) return;
@@ -87,6 +195,9 @@ const Payment: React.FC = () => {
         productId: product.id,
         productName: product.name,
         amount: storePrice,
+        originalPrice: product.realPrice,
+        discount: discount,
+        couponCode: appliedCoupon?.code || null,
         phone: cleanPhone,
         status: response.status === 'success' ? 'success' : 'failed',
         transactionId: response.data?.id || null,
@@ -95,12 +206,22 @@ const Payment: React.FC = () => {
       });
 
       if (response.status === 'success') {
+        // Update coupon usage count
+        if (appliedCoupon) {
+          await update(ref(database, `coupons/${appliedCoupon.id}`), {
+            usedCount: appliedCoupon.usedCount + 1,
+          });
+        }
+
         // Record purchase
         const purchaseRef = push(ref(database, `purchases/${user.uid}`));
         await set(purchaseRef, {
           productId: product.id,
           productName: product.name,
           amount: storePrice,
+          originalPrice: product.realPrice,
+          discount: discount,
+          couponCode: appliedCoupon?.code || null,
           paymentMethod: 'mpesa',
           transactionId: response.data?.id,
           status: 'success',
@@ -212,13 +333,59 @@ const Payment: React.FC = () => {
               </p>
             </div>
 
+            {/* Coupon Section */}
+            <div className="bg-card rounded-xl p-4">
+              <h4 className="font-medium text-foreground mb-3 flex items-center gap-2">
+                <Ticket className="w-4 h-4" />
+                Cupom de Desconto
+              </h4>
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between bg-primary/10 rounded-lg p-3">
+                  <div>
+                    <p className="font-medium text-primary">{appliedCoupon.code}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {appliedCoupon.discountType === 'percentage'
+                        ? `${appliedCoupon.discountValue}% de desconto`
+                        : `${appliedCoupon.discountValue} MT de desconto`
+                      }
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={removeCoupon}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    placeholder="Digite o código"
+                    className="uppercase"
+                  />
+                  <Button 
+                    variant="outline" 
+                    onClick={applyCoupon}
+                    disabled={couponLoading}
+                  >
+                    {couponLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Aplicar'}
+                  </Button>
+                </div>
+              )}
+            </div>
+
             <div className="bg-card rounded-xl p-4">
               <h4 className="font-medium text-foreground mb-3">Resumo</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Produto</span>
-                  <span className="text-foreground">{storePrice} MT</span>
+                  <span className="text-foreground">{product.realPrice} MT</span>
                 </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-primary">
+                    <span>Desconto ({appliedCoupon?.code})</span>
+                    <span>-{discount} MT</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Taxa</span>
                   <span className="text-foreground">0 MT</span>
