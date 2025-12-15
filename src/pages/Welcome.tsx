@@ -6,6 +6,7 @@ import { Sparkles, ShoppingBag, Gift, MessageCircle } from 'lucide-react';
 import { database } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 import { Carousel } from '@/components/common/Carousel';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Product {
   id: string;
@@ -15,7 +16,15 @@ interface Product {
 
 const Welcome: React.FC = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
+
+  // Redirect to home if user is already logged in
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/home', { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   useEffect(() => {
     // Load banners (same as Home carousel)
@@ -32,6 +41,20 @@ const Welcome: React.FC = () => {
       }
     });
   }, []);
+
+  // Show loading while checking auth state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Don't render if user is logged in (will redirect)
+  if (user) {
+    return null;
+  }
 
   const features = [
     { icon: ShoppingBag, label: 'Loja Digital' },

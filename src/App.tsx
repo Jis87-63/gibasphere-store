@@ -37,6 +37,7 @@ import AdminBroadcasts from "./pages/admin/AdminBroadcasts";
 import AdminTermsPolicies from "./pages/admin/AdminTermsPolicies";
 import AdminPrizeSearch from "./pages/admin/AdminPrizeSearch";
 import AdminRedemptions from "./pages/admin/AdminRedemptions";
+import AdminCoupons from "./pages/admin/AdminCoupons";
 import Broadcasts from "./pages/Broadcasts";
 import RedeemPrize from "./pages/RedeemPrize";
 import NotFound from "./pages/NotFound";
@@ -86,6 +87,7 @@ const App = () => (
             <Route path="/admin/broadcasts" element={<AdminBroadcasts />} />
             <Route path="/admin/termos-politicas" element={<AdminTermsPolicies />} />
             <Route path="/admin/termos" element={<AdminTermsPolicies />} />
+            <Route path="/admin/cupons" element={<AdminCoupons />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
