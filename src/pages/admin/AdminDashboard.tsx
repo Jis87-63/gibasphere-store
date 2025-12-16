@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { database } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
-import { Package, Users, MessageCircle, ShoppingCart, Coins, Settings, Image, Tag, Sparkles, RotateCcw, LogOut, Newspaper, Bell, Gift, FileText, Ticket } from 'lucide-react';
+import { Package, Users, MessageCircle, ShoppingCart, Coins, Settings, Image, Tag, Sparkles, RotateCcw, LogOut, Newspaper, Bell, Gift, FileText, Ticket, BarChart3 } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -45,6 +45,7 @@ const AdminDashboard: React.FC = () => {
   }, [navigate]);
 
   const menuItems = [
+    { icon: BarChart3, label: 'Estatísticas', path: '/admin/estatisticas', color: 'text-lime-400' },
     { icon: Package, label: 'Produtos', path: '/admin/produtos', color: 'text-blue-400' },
     { icon: Tag, label: 'Categorias', path: '/admin/categorias', color: 'text-green-400' },
     { icon: Sparkles, label: 'Promoções', path: '/admin/promocoes', color: 'text-yellow-400' },

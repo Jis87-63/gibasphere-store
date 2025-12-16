@@ -70,6 +70,21 @@ const AdminChat: React.FC = () => {
         // Iterate through all users
         Object.entries(data).forEach(([userId, userSessions]: [string, any]) => {
           Object.entries(userSessions).forEach(([sessionId, session]: [string, any]) => {
+            // Count unread messages from this user
+            const messagesRef = ref(database, `supportMessages/${userId}/${sessionId}`);
+            onValue(messagesRef, (msgSnapshot) => {
+              let unread = 0;
+              if (msgSnapshot.exists()) {
+                const messages = Object.values(msgSnapshot.val()) as any[];
+                unread = messages.filter(m => m.sender === 'user' && m.status !== 'seen').length;
+              }
+              
+              // Update session with unread count
+              setSessions(prev => prev.map(s => 
+                s.id === `${userId}/${sessionId}` ? { ...s, unreadCount: unread } : s
+              ));
+            });
+            
             list.push({
               id: `${userId}/${sessionId}`,
               userName: session.userName || 'Usuário',
