@@ -16,6 +16,9 @@ interface Settings {
   termsAndConditions: string;
   primaryColor: string;
   notificationsEnabled: boolean;
+  maintenanceMode: boolean;
+  maintenanceMessage: string;
+  maintenanceEndTime: string;
 }
 
 const defaultSettings: Settings = {
@@ -26,6 +29,9 @@ const defaultSettings: Settings = {
   termsAndConditions: '',
   primaryColor: '#8B5CF6',
   notificationsEnabled: true,
+  maintenanceMode: false,
+  maintenanceMessage: 'Estamos realizando uma manutenção no nosso servidor. Voltaremos em breve!',
+  maintenanceEndTime: '',
 };
 
 const AdminSettings: React.FC = () => {
@@ -58,6 +64,30 @@ const AdminSettings: React.FC = () => {
   };
 
   const settingSections = [
+    {
+      title: 'Manutenção',
+      icon: Palette,
+      fields: [
+        {
+          label: 'Modo de manutenção',
+          key: 'maintenanceMode',
+          type: 'checkbox',
+          description: 'Ativar para colocar a loja em manutenção (exceto painel admin)',
+        },
+        {
+          label: 'Mensagem de manutenção',
+          key: 'maintenanceMessage',
+          type: 'textarea',
+          description: 'Mensagem exibida para os usuários durante a manutenção',
+        },
+        {
+          label: 'Hora de término da manutenção',
+          key: 'maintenanceEndTime',
+          type: 'datetime-local',
+          description: 'Data e hora prevista para o fim da manutenção',
+        },
+      ],
+    },
     {
       title: 'Créditos',
       icon: Coins,
@@ -163,6 +193,12 @@ const AdminSettings: React.FC = () => {
                       />
                       <span className="text-sm text-foreground">Ativado</span>
                     </label>
+                  ) : field.type === 'datetime-local' ? (
+                    <Input
+                      type="datetime-local"
+                      value={(settings as any)[field.key] || ''}
+                      onChange={(e) => setSettings(prev => ({ ...prev, [field.key]: e.target.value }))}
+                    />
                   ) : (
                     <Input
                       type={field.type}

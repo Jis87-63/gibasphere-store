@@ -48,6 +48,10 @@ const Payment: React.FC = () => {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
+  const [showCouponSection, setShowCouponSection] = useState(false);
+  
+  // Promotion state
+  const [promotionDiscount, setPromotionDiscount] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -57,7 +61,22 @@ const Payment: React.FC = () => {
       const productRef = ref(database, `products/${id}`);
       const productSnapshot = await get(productRef);
       if (productSnapshot.exists()) {
-        setProduct({ id, ...productSnapshot.val() });
+        const productData = { id, ...productSnapshot.val() };
+        setProduct(productData);
+        
+        // Check if product has active promotion
+        if (productData.promotion) {
+          const promotionsRef = ref(database, 'promotions');
+          const promotionsSnapshot = await get(promotionsRef);
+          if (promotionsSnapshot.exists()) {
+            const promotions = promotionsSnapshot.val();
+            Object.values(promotions).forEach((promo: any) => {
+              if (promo.productId === id && new Date(promo.endTime) > new Date()) {
+                setPromotionDiscount(promo.discount || 0);
+              }
+            });
+          }
+        }
       }
 
       // Fetch settings for credits per purchase
@@ -153,7 +172,7 @@ const Payment: React.FC = () => {
     setAppliedCoupon(null);
   };
 
-  const calculateDiscount = () => {
+  const calculateCouponDiscount = () => {
     if (!appliedCoupon || !product) return 0;
     
     const basePrice = product.realPrice;
@@ -163,8 +182,14 @@ const Payment: React.FC = () => {
     return Math.min(appliedCoupon.discountValue, basePrice);
   };
 
-  const discount = calculateDiscount();
-  const storePrice = product ? Math.max(0, product.realPrice - discount) : 0;
+  // Calculate promotion discount first
+  const promoDiscountAmount = product ? Math.round((product.realPrice * promotionDiscount) / 100) : 0;
+  const priceAfterPromotion = product ? product.realPrice - promoDiscountAmount : 0;
+  
+  // Then calculate coupon discount on the promotion price
+  const couponDiscountAmount = calculateCouponDiscount();
+  const totalDiscount = promoDiscountAmount + couponDiscountAmount;
+  const storePrice = product ? Math.max(0, product.realPrice - totalDiscount) : 0;
 
   const handlePayment = async () => {
     if (!user || !product) return;
@@ -196,7 +221,7 @@ const Payment: React.FC = () => {
         productName: product.name,
         amount: storePrice,
         originalPrice: product.realPrice,
-        discount: discount,
+        discount: totalDiscount,
         couponCode: appliedCoupon?.code || null,
         phone: cleanPhone,
         status: response.status === 'success' ? 'success' : 'failed',
@@ -220,7 +245,7 @@ const Payment: React.FC = () => {
           productName: product.name,
           amount: storePrice,
           originalPrice: product.realPrice,
-          discount: discount,
+          discount: totalDiscount,
           couponCode: appliedCoupon?.code || null,
           paymentMethod: 'mpesa',
           transactionId: response.data?.id,
@@ -334,41 +359,56 @@ const Payment: React.FC = () => {
             </div>
 
             {/* Coupon Section */}
-            <div className="bg-card rounded-xl p-4">
-              <h4 className="font-medium text-foreground mb-3 flex items-center gap-2">
-                <Ticket className="w-4 h-4" />
-                Cupom de Desconto
-              </h4>
-              {appliedCoupon ? (
-                <div className="flex items-center justify-between bg-primary/10 rounded-lg p-3">
-                  <div>
-                    <p className="font-medium text-primary">{appliedCoupon.code}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {appliedCoupon.discountType === 'percentage'
-                        ? `${appliedCoupon.discountValue}% de desconto`
-                        : `${appliedCoupon.discountValue} MT de desconto`
-                      }
-                    </p>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={removeCoupon}>
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
+            <div className="bg-card rounded-xl overflow-hidden">
+              {!showCouponSection ? (
+                <button
+                  onClick={() => setShowCouponSection(true)}
+                  className="w-full p-4 flex items-center justify-between text-left hover:bg-secondary/50 transition-colors"
+                >
+                  <span className="flex items-center gap-2 text-primary font-medium">
+                    <Ticket className="w-4 h-4" />
+                    Usar cupom de desconto?
+                  </span>
+                  <span className="text-muted-foreground text-sm">Clique aqui</span>
+                </button>
               ) : (
-                <div className="flex gap-2">
-                  <Input
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                    placeholder="Digite o código"
-                    className="uppercase"
-                  />
-                  <Button 
-                    variant="outline" 
-                    onClick={applyCoupon}
-                    disabled={couponLoading}
-                  >
-                    {couponLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Aplicar'}
-                  </Button>
+                <div className="p-4">
+                  <h4 className="font-medium text-foreground mb-3 flex items-center gap-2">
+                    <Ticket className="w-4 h-4" />
+                    Cupom de Desconto
+                  </h4>
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between bg-primary/10 rounded-lg p-3">
+                      <div>
+                        <p className="font-medium text-primary">{appliedCoupon.code}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {appliedCoupon.discountType === 'percentage'
+                            ? `${appliedCoupon.discountValue}% de desconto`
+                            : `${appliedCoupon.discountValue} MT de desconto`
+                          }
+                        </p>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={removeCoupon}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        placeholder="Digite o código"
+                        className="uppercase"
+                      />
+                      <Button 
+                        variant="outline" 
+                        onClick={applyCoupon}
+                        disabled={couponLoading}
+                      >
+                        {couponLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Aplicar'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -380,10 +420,16 @@ const Payment: React.FC = () => {
                   <span className="text-muted-foreground">Produto</span>
                   <span className="text-foreground">{product.realPrice} MT</span>
                 </div>
-                {discount > 0 && (
+                {promoDiscountAmount > 0 && (
+                  <div className="flex justify-between text-green-500">
+                    <span>Promoção (-{promotionDiscount}%)</span>
+                    <span>-{promoDiscountAmount} MT</span>
+                  </div>
+                )}
+                {couponDiscountAmount > 0 && (
                   <div className="flex justify-between text-primary">
-                    <span>Desconto ({appliedCoupon?.code})</span>
-                    <span>-{discount} MT</span>
+                    <span>Cupom ({appliedCoupon?.code})</span>
+                    <span>-{couponDiscountAmount} MT</span>
                   </div>
                 )}
                 <div className="flex justify-between">
