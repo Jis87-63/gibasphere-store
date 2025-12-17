@@ -280,13 +280,15 @@ const Home: React.FC = () => {
                 onClick={() => navigate('/loja?filter=bestsellers')}
                 className="flex items-center gap-1 text-sm text-primary"
               >
-                Ver todos
+                Ver mais
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              {bestSellerProducts.slice(0, 4).map((product) => (
-                <ProductCard key={product.id} {...product} />
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {bestSellerProducts.map((product) => (
+                <div key={product.id} className="flex-shrink-0 w-40">
+                  <ProductCard {...product} />
+                </div>
               ))}
             </div>
           </motion.section>
