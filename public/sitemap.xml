@@ -1,55 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.w3.org/2000/svg">
   <url>
-    <loc>https://lojaderecargas.com/</loc>
+    <loc>https://mozstore.netlify.app/</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://lojaderecargas.com/home</loc>
+    <loc>https://mozstore.netlify.app/home</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://lojaderecargas.com/loja</loc>
+    <loc>https://mozstore.netlify.app/loja</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://lojaderecargas.com/promocoes</loc>
+    <loc>https://mozstore.netlify.app/promocoes</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://lojaderecargas.com/novidades</loc>
+    <loc>https://mozstore.netlify.app/novidades</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://lojaderecargas.com/suporte</loc>
+    <loc>https://mozstore.netlify.app/suporte</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://lojaderecargas.com/termos</loc>
+    <loc>https://mozstore.netlify.app/termos</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://lojaderecargas.com/creditos</loc>
+    <loc>https://mozstore.netlify.app/creditos</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://lojaderecargas.com/perfil</loc>
+    <loc>https://mozstore.netlify.app/perfil</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
