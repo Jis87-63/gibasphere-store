@@ -1,1 +1,4 @@
 project_id = "gpbwwyvjluddlvacafhh"
+
+[functions.gibrapay]
+verify_jwt = false
