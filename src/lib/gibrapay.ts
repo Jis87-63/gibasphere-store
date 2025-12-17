@@ -1,6 +1,4 @@
-const API_KEY = "b3b33cba8a903626a015d592754f1dcec756e9fbb12d411516f4a79b04aba8923ebb6396da29e61c899154ab005aaf056961b819c263e1ec5d88c60b9cae6aba";
-const WALLET_ID = "50c282d1-843f-4b9c-a287-2140e9e8d94b";
-const BASE_URL = "https://gibrapay.online";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 export interface TransferRequest {
   amount: number;
@@ -36,14 +34,13 @@ export interface TransactionStatusResponse {
 export const gibrapay = {
   async transfer(request: TransferRequest): Promise<TransferResponse> {
     try {
-      const response = await fetch(`${BASE_URL}/v1/transfer`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/gibrapay`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'API-Key': API_KEY,
         },
         body: JSON.stringify({
-          wallet_id: WALLET_ID,
+          action: 'transfer',
           amount: request.amount,
           number_phone: request.number_phone,
         }),
@@ -62,11 +59,15 @@ export const gibrapay = {
 
   async checkTransactionStatus(transactionId: string): Promise<TransactionStatusResponse> {
     try {
-      const response = await fetch(`${BASE_URL}/transaction/status/${transactionId}`, {
-        method: 'GET',
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/gibrapay`, {
+        method: 'POST',
         headers: {
-          'API-Key': API_KEY,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          action: 'status',
+          transactionId,
+        }),
       });
 
       const data = await response.json();
@@ -82,11 +83,14 @@ export const gibrapay = {
 
   async getTransactions(): Promise<any> {
     try {
-      const response = await fetch(`${BASE_URL}/v1/transactions/${WALLET_ID}`, {
-        method: 'GET',
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/gibrapay`, {
+        method: 'POST',
         headers: {
-          'API-Key': API_KEY,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          action: 'transactions',
+        }),
       });
 
       const data = await response.json();
