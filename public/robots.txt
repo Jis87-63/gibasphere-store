@@ -15,4 +15,4 @@ Allow: /
 Disallow: /admin/
 Disallow: /admin
 
-Sitemap: https://lojaderecargas.com/sitemap.xml
+Sitemap: https://mozstore.netlify.app/sitemap.xml
