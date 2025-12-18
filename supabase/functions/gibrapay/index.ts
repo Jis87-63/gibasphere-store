@@ -1,8 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+const ALLOWED_ORIGIN = 'https://mozstore.netlify.app';
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 const GIBRAPAY_API_KEY = Deno.env.get('GIBRAPAY_API_KEY');
@@ -10,6 +13,17 @@ const GIBRAPAY_WALLET_ID = Deno.env.get('GIBRAPAY_WALLET_ID');
 const BASE_URL = "https://gibrapay.online";
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  
+  // Reject requests from unauthorized origins (except for preflight)
+  if (origin && origin !== ALLOWED_ORIGIN) {
+    console.warn(`Blocked request from unauthorized origin: ${origin}`);
+    return new Response(
+      JSON.stringify({ status: 'error', message: 'Origem não autorizada' }),
+      { status: 403, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
